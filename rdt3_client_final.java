@@ -24,7 +24,8 @@ class object implements Serializable
 	int my_port;
 	String my_ip;
 	int ack;
-	public object(String message,int seq_num, int my_port,String my_ip,int ack)
+	int rcwnd;
+	public object(String message,int seq_num,int my_port,String my_ip,int ack,int rcwnd)
 	{
 		this.message=message;
 		this.seq_num=seq_num;
@@ -32,6 +33,7 @@ class object implements Serializable
 		this.my_port = my_port;
 		this.my_ip = my_ip;
 		this.ack = ack;
+		this.rcwnd = rcwnd;
 	}
 
 }
@@ -84,7 +86,7 @@ public class rdt3_client_final
 	  		 {
 	      		 
 	  			 String inp = Integer.toString(i);
-	  			 object packet = new object(inp,packet_num,listen_port,my_ip,0);		 
+	  			 object packet = new object(inp,packet_num,listen_port,my_ip,0,0);		 
 	  			 ByteArrayOutputStream bos = new ByteArrayOutputStream();
 	  		     ObjectOutputStream oos;
 				try {
@@ -165,23 +167,26 @@ public class rdt3_client_final
 					  			    	
 					  			    // Send the last packet of the new window
 					  			      
-					  			       String inp = Integer.toString(window_end);
-					  			 	   object packet = new object(inp,packet_num,listen_port,my_ip,0);	
-					  			 	   
-						  			   ByteArrayOutputStream bos = new ByteArrayOutputStream();
-						  		       ObjectOutputStream oos;
-										 
-									   oos = new ObjectOutputStream(bos);
-									   oos.writeObject(packet);
-										
-									   byte buf[] = bos.toByteArray();
-								  			 
-									   DatagramPacket DpSend = 
-									  	             new DatagramPacket(buf, buf.length, ip, port); 
-									   sending_port.send(DpSend);
-									   timeout = System.currentTimeMillis();
-									  	
-									   packet_num = (packet_num+1);	
+//					  			       if(ack_packet.rcwnd!=0)
+//					  			       {
+						  			       String inp = Integer.toString(window_end);
+						  			 	   object packet = new object(inp,packet_num,listen_port,my_ip,0,0);	
+						  			 	   
+							  			   ByteArrayOutputStream bos = new ByteArrayOutputStream();
+							  		       ObjectOutputStream oos;
+											 
+										   oos = new ObjectOutputStream(bos);
+										   oos.writeObject(packet);
+											
+										   byte buf[] = bos.toByteArray();
+									  			 
+										   DatagramPacket DpSend = 
+										  	             new DatagramPacket(buf, buf.length, ip, port); 
+										   sending_port.send(DpSend);
+										   timeout = System.currentTimeMillis();
+										  	
+										   packet_num = (packet_num+1);	
+//					  			       }
 								   
 								   }				  
 							   
@@ -197,11 +202,11 @@ public class rdt3_client_final
 			  			    	if(curr_time-timeout>200)
 			  			    	{
 			  			    		//Send the lost packets of the window again
-			  			    		 
+			  			    		  int rcwnd = ack_packet.rcwnd;
 			  			    		  for(int i=last_ack+1;i<=window_end;i++)
 	 		  			    		  {
 			  			    		   String inp = Integer.toString(i);
-					  			 	   object packet = new object(inp,i,listen_port,my_ip,0);	
+					  			 	   object packet = new object(inp,i,listen_port,my_ip,0,0);	
 					  			       ByteArrayOutputStream bos = new ByteArrayOutputStream();
 						  		       ObjectOutputStream oos;
 										
@@ -231,7 +236,7 @@ public class rdt3_client_final
 			  	        	for(int i=last_ack+1;i<=window_end;i++)
 	 			    		  {
 				    		   String inp = Integer.toString(i);
-			  			 	   object packet = new object(inp,i,listen_port,my_ip,0);	
+			  			 	   object packet = new object(inp,i,listen_port,my_ip,0,0);	
 			  			       ByteArrayOutputStream bos = new ByteArrayOutputStream();
 				  		       ObjectOutputStream oos;
 								
