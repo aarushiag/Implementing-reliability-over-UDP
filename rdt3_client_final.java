@@ -11,7 +11,9 @@ import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.net.DatagramPacket; 
 import java.net.DatagramSocket; 
-import java.net.InetAddress; 
+import java.net.InetAddress;
+import java.net.SocketTimeoutException;
+import java.util.HashMap;
 import java.util.Scanner; 
 
 class object implements Serializable
@@ -34,24 +36,20 @@ class object implements Serializable
 
 }
 
-//class MyThread extends Thread {
-//
-//    public void run(){
-//    	while(true)
-//       {System.out.println("MyThread running");}
-//    }
-//  }
-
+ 
 public class rdt3_client_final
 { 
 	
-	 static int packet_num = 0;
-
-	 
-	 
+	static int packet_num = 0;
+	static int window_strt = 0;
+	static int window_end = 0;
+	static long timeout = 0;
+	static int max_window_strt =0;
+	static int max_packets = 2000;
+	static int last_ack = 0;
 	public static void main(String args[]) throws IOException 
 	{ 
-	   Scanner sc = new Scanner(System.in); 
+	     Scanner sc = new Scanner(System.in); 
 	    
 	   
 	     System.out.println("Enter the port number you want to connect at :- ");
@@ -62,6 +60,8 @@ public class rdt3_client_final
 		 
 		 System.out.println("Enter the window size :- ");
 		 int n = sc.nextInt();
+		 window_end = n-1;
+		 max_window_strt = max_packets-n;
 		 
 		 System.out.println("Enter the port number you want to listen at :- ");
 		 int listen_port = sc.nextInt();
@@ -75,14 +75,12 @@ public class rdt3_client_final
 	   
 	   InetAddress ip = InetAddress.getByName(ip_addr); 
 	   
-	
-	   //To read the acknowledgements
-//	   MyThread myThread = new MyThread();
-//	   myThread.start();
-	
+ 
+	   receiving_port.setSoTimeout(100);
+	   
 	   Thread t1 = new Thread(){
 	         public void run(){
-	      	 for (int i=0;i<20000;i++)
+	      	 for (int i=window_strt;i<=window_end;i++)
 	  		 {
 	      		 
 	  			 String inp = Integer.toString(i);
@@ -99,7 +97,7 @@ public class rdt3_client_final
 			  	             new DatagramPacket(buf, buf.length, ip, port); 
 			  	       sending_port.send(DpSend); 
 			  	
-			  	     packet_num = (packet_num+1)%n;
+			  	     packet_num = (packet_num+1);
 			  	       
 				} catch (IOException e2) {
 					// TODO Auto-generated catch block
@@ -108,7 +106,7 @@ public class rdt3_client_final
 	  			
    
 	  		 }
-	      	 System.out.println("helloo");
+	      	 
 	         }
 	     };
 	     
@@ -118,27 +116,139 @@ public class rdt3_client_final
 	         public void run(){	        	 
 	        	 
 		  	       
-		  	       //Read acknowledgement
+		  	     //Read acknowledgement
+	        	 
+	        	
 	        	 while(true)
 	        	 {
 		  	       
-		  	        byte[] receive = new byte[2048];
+		  	        byte[] receive = new byte[50000];
 		  	        DatagramPacket  DpReceive = new DatagramPacket(receive, receive.length); 
 		  			    	 
 		  	        try 
 		  	        {
-		  			    receiving_port.receive(DpReceive);
-		  			    ByteArrayInputStream in = new ByteArrayInputStream(receive);
-		  			    ObjectInputStream is = new ObjectInputStream(in);
+		  	        	try
+		  			    {
+		  	        		
+			  	        	receiving_port.receive(DpReceive);
+			  			    ByteArrayInputStream in = new ByteArrayInputStream(receive);
+			  			    ObjectInputStream is = new ObjectInputStream(in);
+			  			  
+			  			    object ack_packet = (object)is.readObject();   
+			  			     
+			  			 
+			  			  
+			  			  if(ack_packet!=null)
+			  			  {
+			  			    		
+			  			    System.out.println("Ack from server for:-"+ack_packet.seq_num+" "+ ack_packet.ack);
+			  			    
+			  			   
+			  			   
+			  			    
+			  			    //Shift the window one right
+			  			    if(ack_packet.ack==ack_packet.seq_num)
+			  			    {
+			  			    	   last_ack= ack_packet.ack;
+			  			    	 
+								   if(ack_packet.ack==max_packets-1)
+								   {
+									   break;
+								   }
+			  			    	 	
+								   if(ack_packet.ack<max_window_strt)
+								   {
+					  			    	window_strt++;
+					  			    	window_end++;
+					  			    	
+					  			    // Send the last packet of the new window
+					  			      
+					  			       String inp = Integer.toString(window_end);
+					  			 	   object packet = new object(inp,packet_num,listen_port,my_ip,0);	
+					  			 	   
+						  			   ByteArrayOutputStream bos = new ByteArrayOutputStream();
+						  		       ObjectOutputStream oos;
+										 
+									   oos = new ObjectOutputStream(bos);
+									   oos.writeObject(packet);
+										
+									   byte buf[] = bos.toByteArray();
+								  			 
+									   DatagramPacket DpSend = 
+									  	             new DatagramPacket(buf, buf.length, ip, port); 
+									   sending_port.send(DpSend);
+									   timeout = System.currentTimeMillis();
+									  	
+									   packet_num = (packet_num+1);	
+								   
+								   }				  
+							   
+			  			    	 
+			  			    	
+			  			    }
+			  			    else
+			  			    {
+			  			    	//Retransmission
+			  			    	long curr_time = System.currentTimeMillis();
+			  			    	 
+			  			    	if(curr_time-timeout>200)
+			  			    	{
+			  			    		//Send the  packets of the window again
+			  			    		 
+			  			    		  for(int i=last_ack+1;i<=window_end;i++)
+	 		  			    		  {
+			  			    		   String inp = Integer.toString(i);
+					  			 	   object packet = new object(inp,i,listen_port,my_ip,0);	
+					  			       ByteArrayOutputStream bos = new ByteArrayOutputStream();
+						  		       ObjectOutputStream oos;
+										
+									   oos = new ObjectOutputStream(bos);
+									   oos.writeObject(packet);
+											
+									   byte buf[] = bos.toByteArray();
+								  			 
+									   DatagramPacket DpSend = 
+									  	             new DatagramPacket(buf, buf.length, ip, port); 
+									   sending_port.send(DpSend);				  	       
+									   timeout = System.currentTimeMillis(); 
+	 		  			    		  }
+										   		    
+			  			    		
+			  			    	}
+			  			    	
+		  			       }	  			    
+		  			     
+		  			    		 
+		  		 	     }
+		  			 }
+		  	        	
+		  	         catch(SocketTimeoutException e)
+					 {
+		  			    	//Retransmission
+			  	        	for(int i=last_ack+1;i<=window_end;i++)
+	 			    		  {
+				    		   String inp = Integer.toString(i);
+			  			 	   object packet = new object(inp,i,listen_port,my_ip,0);	
+			  			       ByteArrayOutputStream bos = new ByteArrayOutputStream();
+				  		       ObjectOutputStream oos;
+								
+							   oos = new ObjectOutputStream(bos);
+							   oos.writeObject(packet);
+									
+							   byte buf[] = bos.toByteArray();
+						  			 
+							   DatagramPacket DpSend = 
+							  	             new DatagramPacket(buf, buf.length, ip, port); 
+							   sending_port.send(DpSend);				  	       
+							   timeout = System.currentTimeMillis(); 
+ 			    		  }
+					  	  
+					  	  
+					  }
 		  			  
-		  			    object ack_packet = (object)is.readObject();   
-		  			     
-		  			    		 
-		  			    		
-		  			    System.out.println("Ack from server for:-"+ack_packet.seq_num+" "+ ack_packet.ack);
-		  			     
-		  			    		 
-		  		 	 }
+		  	        }
+		  	        
+		  	      
 		  	       
 		  	       	catch (IOException e2) {
 						// TODO Auto-generated catch block

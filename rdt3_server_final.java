@@ -84,12 +84,17 @@ public class rdt3_server_final
 		    		String data = packet.message;
 		    		client_port = packet.my_port;
 		    		client_address = InetAddress.getByName(packet.my_ip);
-		    		System.out.println(data);
 		    		
-		    		if(packet.seq_num == (pointer+1)%n)
+		    		
+		    		if(packet.seq_num == (pointer+1))
 		    		{
-		    		   	 System.out.println("Client:-" + data);		    		    
-		    		     pointer=(pointer+1)%n;
+		    		   	 System.out.println("Successfully received from Client:-" + data);		    		    
+		    		     pointer=(pointer+1);
+		    		}
+		    		
+		    		else
+		    		{
+		    			System.out.println("Packet Discarded:-"+data);
 		    		}
 		    		
 		    		 //Send Acknowledgement 
@@ -116,10 +121,7 @@ public class rdt3_server_final
 	  	 	 {
 	  	 		 e.printStackTrace();
 	  		 }
-	//  		 String data = new String(receive);
-	//  		 data = data.trim();   		 
-	  		 
-	  	      
+   	      
 	  	 
 	    }
 	   
