@@ -47,8 +47,9 @@ public class rdt3_client_final
 	static int window_end = 0;
 	static long timeout = 0;
 	static int max_window_strt =0;
-	static int max_packets = 2000;
+	static int max_packets = 5000;
 	static int last_ack = 0;
+	static int rcwnd = 0;
 	public static void main(String args[]) throws IOException 
 	{ 
 	     Scanner sc = new Scanner(System.in); 
@@ -78,7 +79,7 @@ public class rdt3_client_final
 	   InetAddress ip = InetAddress.getByName(ip_addr); 
 	   
  
-	   receiving_port.setSoTimeout(100);
+	   receiving_port.setSoTimeout(400);
 	   
 	   Thread t1 = new Thread(){
 	         public void run(){
@@ -147,7 +148,7 @@ public class rdt3_client_final
 			  			    System.out.println("Ack from server for:-"+ack_packet.seq_num+" "+ ack_packet.ack);
 			  			    
 			  			   
-			  			   
+			  			   rcwnd =Math.min(last_ack+ack_packet.rcwnd,window_end);
 			  			    
 			  			   
 			  			    if(ack_packet.ack==ack_packet.seq_num)
@@ -202,8 +203,8 @@ public class rdt3_client_final
 			  			    	if(curr_time-timeout>200)
 			  			    	{
 			  			    		//Send the lost packets of the window again
-			  			    		  int rcwnd = ack_packet.rcwnd;
-			  			    		  for(int i=last_ack+1;i<=window_end;i++)
+			  			    		  
+			  			    		  for(int i=last_ack+1;i<=rcwnd;i++)
 	 		  			    		  {
 			  			    		   String inp = Integer.toString(i);
 					  			 	   object packet = new object(inp,i,listen_port,my_ip,0,0);	
@@ -233,7 +234,8 @@ public class rdt3_client_final
 		  	         catch(SocketTimeoutException e)
 					 {
 		  			    	//Retransmission due to lost packet
-			  	        	for(int i=last_ack+1;i<=window_end;i++)
+ 
+			  	        	for(int i=last_ack+1;i<=rcwnd;i++)
 	 			    		  {
 				    		   String inp = Integer.toString(i);
 			  			 	   object packet = new object(inp,i,listen_port,my_ip,0,0);	
