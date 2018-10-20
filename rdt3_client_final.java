@@ -60,8 +60,8 @@ public class rdt3_client_final
 		 
 		 System.out.println("Enter the window size :- ");
 		 int n = sc.nextInt();
-		 window_end = n-1;
-		 max_window_strt = max_packets-n;
+		 window_end = Math.min(n-1, max_packets-1);
+		 max_window_strt = Math.max(0,max_packets-n);
 		 
 		 System.out.println("Enter the port number you want to listen at :- ");
 		 int listen_port = sc.nextInt();
@@ -95,7 +95,8 @@ public class rdt3_client_final
 		  			 
 			  	     DatagramPacket DpSend = 
 			  	             new DatagramPacket(buf, buf.length, ip, port); 
-			  	       sending_port.send(DpSend); 
+			  	       sending_port.send(DpSend);
+			  	     timeout = System.currentTimeMillis(); 
 			  	
 			  	     packet_num = (packet_num+1);
 			  	       
@@ -146,7 +147,7 @@ public class rdt3_client_final
 			  			   
 			  			   
 			  			    
-			  			    //Shift the window one right
+			  			   
 			  			    if(ack_packet.ack==ack_packet.seq_num)
 			  			    {
 			  			    	   last_ack= ack_packet.ack;
@@ -156,6 +157,7 @@ public class rdt3_client_final
 									   break;
 								   }
 			  			    	 	
+								   //Shift the window one right
 								   if(ack_packet.ack<max_window_strt)
 								   {
 					  			    	window_strt++;
@@ -188,12 +190,13 @@ public class rdt3_client_final
 			  			    }
 			  			    else
 			  			    {
-			  			    	//Retransmission
+			  			    	//Retransmission due to cumack
 			  			    	long curr_time = System.currentTimeMillis();
 			  			    	 
+			  			    	//Timeout
 			  			    	if(curr_time-timeout>200)
 			  			    	{
-			  			    		//Send the  packets of the window again
+			  			    		//Send the lost packets of the window again
 			  			    		 
 			  			    		  for(int i=last_ack+1;i<=window_end;i++)
 	 		  			    		  {
@@ -224,7 +227,7 @@ public class rdt3_client_final
 		  	        	
 		  	         catch(SocketTimeoutException e)
 					 {
-		  			    	//Retransmission
+		  			    	//Retransmission due to lost packet
 			  	        	for(int i=last_ack+1;i<=window_end;i++)
 	 			    		  {
 				    		   String inp = Integer.toString(i);
@@ -241,7 +244,7 @@ public class rdt3_client_final
 							  	             new DatagramPacket(buf, buf.length, ip, port); 
 							   sending_port.send(DpSend);				  	       
 							   timeout = System.currentTimeMillis(); 
- 			    		  }
+ 			    		     }
 					  	  
 					  	  
 					  }
@@ -269,27 +272,5 @@ public class rdt3_client_final
 	     t2.start();
 	     t1.start();
 	     
-	
-
-	   while (true) 
-	   { 
-	//       String inp = sc.nextLine(); 
-	//       packet_num = (packet_num+1)%n;
-	//       
-	//       object packet = new object(inp,packet_num,n,listen_port,my_ip,0);		 
-	//       ByteArrayOutputStream bos = new ByteArrayOutputStream();
-	//	   ObjectOutputStream oos = new ObjectOutputStream(bos);
-	//	   oos.writeObject(packet);
-	//	   oos.flush();
-	//	   byte buf[] = bos.toByteArray();       
-	//         
-	//		 
-	//       DatagramPacket DpSend = 
-	//             new DatagramPacket(buf, buf.length, ip, port); 
-	//       receiving_port.send(DpSend);
-	//       
-	//       if (inp.equals("bye")) 
-	//         break; 
-	   } 
 	} 
 } 

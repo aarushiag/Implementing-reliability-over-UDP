@@ -68,7 +68,7 @@ public class rdt3_server_final
 	   
 	    DatagramPacket DpReceive = null; 
 	   
-	//   for(int i=0;i<20000;i++)
+	 
 	    while(true)
 	    {
 	  	 
@@ -125,41 +125,7 @@ public class rdt3_server_final
 	  	 
 	    }
 	   
-	 //  receiving_port.setSoTimeout(0);
-	 //  while (true) 
-	//   { 
-	
-	//  	 DpReceive = new DatagramPacket(receive, receive.length); 
-	//  	 
-	//  	 try 
-	//  	 {
-	//  		receiving_port.receive(DpReceive);
-	//  		ByteArrayInputStream in = new ByteArrayInputStream(receive);
-	//  		ObjectInputStream is = new ObjectInputStream(in);
-	//  		 
-	//  		object packet = (object)is.readObject();   
-	//  		String data = packet.message;
-	//  		window_size = packet.window_size;
-	//		client_port = packet.my_port;
-	//		client_address = InetAddress.getByName(packet.my_ip);
-	//  		if (data.equals("bye")) 
-	//  	    { 
-	//  	        System.out.println("Client EXITING"); 
-	//  	        break; 
-	//  	    } 
-	//  		
-	//  		System.out.println("Client:-" + data);
-	//  		             
-	//  		receive = new byte[2048]; 
-	//  		 
-	//		 }
-	//	 	 
-	//	 	 catch (ClassNotFoundException e) 
-	//	 	 {
-	//	 		 e.printStackTrace();
-	//		 }
-	//  	 
-//	     } 
+ 
 	} 
 
 } 
